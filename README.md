@@ -23,7 +23,7 @@ The following datasets were used in the manuscript:
     [GSE122960](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE122960)  
   - Ileum (Martin et al., 2019):
     [GSE134809](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE134809)  
-  - Salivary Gland (Huang et al., 2020):
+  - Salivary Gland (Huang et al., 2021):
     [covid19cellatlas](https://www.covid19cellatlas.org/index.healthy.html)
 
 ### Libraries
