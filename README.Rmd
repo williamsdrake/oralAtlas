@@ -1,34 +1,34 @@
-Oral Atlas
-================
+---
+title: Oral Atlas
+output: rmarkdown::github_document
+---
 
-# Introduction
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 
-The following document includes the code used to analyze datasets and
-generate figures related to single-cell RNA sequencing from Williams et
-al., 2021 (doi: [doi number here](actual.address.here.org))
+# Introduction {.tabset .tabset-pills}
 
-## Setup
+The following document includes the code used to analyze datasets and generate figures related to single-cell RNA sequencing from Williams et al., 2021 (doi: [doi number here](actual.address.here.org))  
 
-> This section covers dataset setup in R and **Figure S1A-C**
+## Setup {.tabset .tabset-pills}
+
+>This section covers dataset setup in R and **Figure S1A-C**   
 
 ### Data aquisition
 
-The following datasets were used in the manuscript:
+The following datasets were used in the manuscript: 
 
-  - Oral (Williams et al., 2021):
-    [GSE164241](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE164241)  
-  - Skin (He et al., 2020):
-    [GSE147424](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE147424)  
-  - Lung (Reyfman et al., 2019):
-    [GSE122960](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE122960)  
-  - Ileum (Martin et al., 2019):
-    [GSE134809](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE134809)  
-  - Salivary Gland (Huang et al., 2020):
-    [covid19cellatlas](https://www.covid19cellatlas.org/index.healthy.html)
+* Oral (Williams et al., 2021): [GSE164241](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE164241)  
+* Skin (He et al., 2020): [GSE147424](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE147424)  
+* Lung (Reyfman et al., 2019): [GSE122960](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE122960)  
+* Ileum (Martin et al., 2019): [GSE134809](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE134809)  
+* Salivary Gland (Huang et al., 2020): [covid19cellatlas](https://www.covid19cellatlas.org/index.healthy.html)  
+
 
 ### Libraries
 
-``` r
+```{r, eval=FALSE}
 library(Seurat)
 library(dplyr)
 library(ggplot2)
@@ -68,23 +68,18 @@ library(purrr)
 
 ### Data import
 
-Deposited data was downloaded and converted to Seurat objects (one
-example per dataset shown for brevity):
+Deposited data was downloaded and converted to Seurat objects (one example per dataset shown for brevity):
 
-1)  Oral/Ileum:
+(@) Oral/Ileum:
 
-<!-- end list -->
-
-``` r
+```{r, eval=FALSE}
 sample1.data <- Read10X(data.dir = "/path/to/data/folder/")
 sample1 <- CreateSeuratObject(counts = sample1.data, project = "sample1")
 ```
 
-2)  Skin:
+(@) Skin:
 
-<!-- end list -->
-
-``` r
+```{r, eval=FALSE}
 sample1count <- read.table(file="/path/to/data/folder/sample1.txt",sep=",",header = TRUE, row.names = NULL)
 names <- make.unique(as.character(sample1count$X))
 rownames(sample1count) <- names
@@ -92,20 +87,16 @@ sample1count <- sample1count[,-1] # get rid of old names
 sample1 <- CreateSeuratObject(counts = sample1count, min.cells = 3, min.features = 200)
 ```
 
-3)  Lung:
+(@) Lung:
 
-<!-- end list -->
-
-``` r
+```{r, eval=FALSE}
 sample1.data <- Read10X_h5("/path/to/data/folder/sample1.h5")
 sample1 <- CreateSeuratObject(counts = sample1.data, project = "sample1")
 ```
 
-4)  Salivary gland:
+(@) Salivary gland: 
 
-<!-- end list -->
-
-``` r
+```{r, eval=FALSE}
 library(SeuratDisk)
 library("reticulate")
 
@@ -116,12 +107,9 @@ Convert("warner20_salivary_gland.processed.gzip.h5ad", dest = "h5seurat", overwr
 SG <- LoadH5Seurat("warner20_salivary_gland.processed.gzip.h5seurat")
 ```
 
-Individual Seurat objects were merged according to tissue type/disease
-status (one example is shown for all tissue types). *The data deposited
-at covid19atlas.org was pre-processed and pre-merged, and therefore did
-not require this step.*
+Individual Seurat objects were merged according to tissue type/disease status (one example is shown for all tissue types). *The data deposited at covid19atlas.org was pre-processed and pre-merged, and therefore did not require this step.*
 
-``` r
+```{r, eval=FALSE}
 GM <- merge(GM136, 
             y = c(GM143, GM144, GM147, GM148, GM183, GM184a, GM238, GM241, GM242, GM169, GM283, GM289), 
             add.cell.ids = c("GM136", "GM143", "GM144", "GM147", "GM148", "GM183", "GM184a", 
@@ -129,24 +117,22 @@ GM <- merge(GM136,
             project = "GM")
 ```
 
-In subsequent sections, the following variable names were used for each
-merged dataset:
+In subsequent sections, the following variable names were used for each merged dataset: 
 
-  - `GM` - Healthy gingival mucosa
-  - `BM` - Healthy buccal mucosa
-  - `PD` - Disease (periodontitis) gingival mucosa
-  - `HO` - Healthy buccal and gingival mucosa
-  - `HL` - Healthy lung
-  - `HI` - Healthy ileum
-  - `HS` - Healthy skin
-  - `SG` - Healthy salivary gland
++ `GM` - Healthy gingival mucosa
++ `BM` - Healthy buccal mucosa
++ `PD` - Disease (periodontitis) gingival mucosa
++ `HO` - Healthy buccal and gingival mucosa
++ `HL` - Healthy lung
++ `HI` - Healthy ileum
++ `HS` - Healthy skin
++ `SG` - Healthy salivary gland
 
 ### Data quality control
 
-Datasets underwent quality control as follows (only oral datasets shown
-for brevity):
+Datasets underwent quality control as follows (only oral datasets shown for brevity):
 
-``` r
+```{r, eval=FALSE}
 # save pre-qc data
 preQC_GM <- as.data.frame(table(GM$orig.ident))
 preQC_BM <- as.data.frame(table(BM$orig.ident))
@@ -273,7 +259,7 @@ cellNumSummary_PD <- ggplot(qcSum_PD,
 
 #### Figure S1A-C
 
-``` r
+```{r, eval=FALSE}
 library(patchwork)
 
 FigS1A <- (preQC.Vln_GM / preQC.Vln_BM / preQC.Vln_PD) 
@@ -282,33 +268,33 @@ FigS1C <- cellNumSummary_GM / (cellNumSummary_BM | cellNumSummary_PD) +
   plot_layout(guides = "collect") 
 ```
 
-## Gingival vs. Buccal
+## Gingival vs. Buccal {.tabset .tabset-pills}
 
-> This section covers **Figure 1B,D, Figure S1D, Figure 2, Figure S2,
-> Figure 3A-D, Figure 7B Table S5**
+>This section covers **Figure 1B,D, Figure S1D, Figure 2, Figure S2, Figure 3A-D, Figure 7B Table S5**
 
 ### Data preparation
-
 #### Transformation
 
-``` r
+```{r, eval=FALSE}
 BM <- NormalizeData(BM)
 BM <- FindVariableFeatures(BM, nfeatures = 4000)
 GM <- NormalizeData(GM)
 GM <- FindVariableFeatures(GM, nfeatures = 4000)
+
 ```
 
 #### Integration and batch correction
 
-``` r
+```{r, eval=FALSE}
 sampleList <- list(GM, BM)
 oral.anchors <- FindIntegrationAnchors(object.list = sampleList, dims = 1:50)
 oralIntegrated <- IntegrateData(anchorset = oral.anchors, dims = 1:50)
+
 ```
 
 #### Dimensionality reduction and cell clustering
 
-``` r
+```{r, eval=FALSE}
 # cell-cycle scoring and regression
 s.genes <- cc.genes$s.genes
 g2m.genes <- cc.genes$g2m.genes
@@ -335,13 +321,13 @@ oralIntegrated <- RunUMAP(oralIntegrated,
                           dims = 1:50)
 # assess cluster tree
 clustree(oralIntegrated)
+
 ```
 
-### High-level summary
-
+### High-level summary 
 #### Cell classification
 
-``` r
+```{r, eval=FALSE}
 # set correct assay and idents for GEX
 DefaultAssay(oralIntegrated) <- "RNA"
 Idents(oralIntegrated) <- "integrated_snn_res.1"
@@ -393,11 +379,12 @@ levels(oralIntegrated) <- c("Endothelial",
                             "Epithelial", 
                             "Other")
 oralIntegrated$generalCellTypes <- oralIntegrated@active.ident
+
 ```
 
 ##### Figure 1B
 
-``` r
+```{r, eval=FALSE}
 pal <- paletteer_d("ggsci::nrc_npg")[c(1,3,4,9,5)]
 Idents(oralIntegrated) <- 'generalCellTypes'
 Fig1B_dimPlot <- DimPlot(oralIntegrated, 
@@ -428,11 +415,13 @@ Fig1B_propBySample <- plot_stat(oralIntegrated,
 Fig1BStats <- as.data.frame(Fig1B_propBySample[["data"]])
 Fig1BStats <- Fig1BStats[order(Fig1BStats$cluster),]
 write.csv(Fig1BStats, "Fig1B_forStatistics.csv")
+
 ```
 
 ##### Figure S1D
 
-``` r
+```{r, eval=FALSE}
+
 # find cell-type defining markers
 generalCellTypeMarkers <- FindAllMarkers(oralIntegrated, 
                                          only.pos = TRUE, 
@@ -452,7 +441,7 @@ FigS1D <- plot_heatmap(dataset = oralIntegrated,
 
 #### Gene expression
 
-``` r
+```{r, eval=FALSE}
 # isolate different cell types
 Idents(oralIntegrated) <- "generalCellTypes"
 endo <- subset(oralIntegrated, 
@@ -489,7 +478,7 @@ curatedGenesEpi <- c("KRT14",
 
 ##### Figure 1D
 
-``` r
+```{r, eval=FALSE}
 # set ident (BM, GM)
 Idents(endo) <- "project"
 Idents(im) <- "project"
@@ -541,13 +530,13 @@ for(i in 1:length(bigPlot)) {
 }
 
 Fig1D <- cowplot::plot_grid(plotlist = bigPlot, ncol = 5)
+
 ```
 
 ### Endothelial subset
-
 #### Cell classification
 
-``` r
+```{r, eval=FALSE}
 DefaultAssay(endo) <- "RNA"
 Idents(endo) <- "integrated_snn_res.1"
 
@@ -581,11 +570,12 @@ levels(endo) <- c("H.VEC 1.1",
 
 # endo metadata
 endo$endoTypes <- Idents(endo)
+
 ```
 
 ##### Figure 2A
 
-``` r
+```{r, eval=FALSE}
 endo <- RunUMAP(endo, dims = 1:50)
 endoColors <- c(carto.pal(pal1 = "red.pal", 
                           n1 = 20)[c(20,8,2,14)],
@@ -631,7 +621,7 @@ Fig2B_cartoonProp <- ggplot(endoPropBySubset,
 
 #### Gene expression
 
-``` r
+```{r, eval=FALSE}
 # endo GEX based on new cluster names
 Idents(endo) <- "endoTypes"
 endoSig <- endoMarkers[endoMarkers$p_val_adj < 0.2, ]
@@ -641,11 +631,12 @@ endoTop <- endoSig %>%
 endoTop <- endoTop[!duplicated(endoTop$gene),] %>%
   map_df(rev)
 write.csv(endoSig, "endo_clusterMarkers_significant.csv")
+
 ```
 
 ##### Figure 2B
 
-``` r
+```{r, eval=FALSE}
 Fig2B <- DotPlot(endo, 
                     features = endoTop$gene, 
                     col.min = 0, 
@@ -663,11 +654,12 @@ Fig2B <- DotPlot(endo,
                                  order = 1), 
          size = guide_legend(title = "%cell.exp", 
                              order = 2))
+
 ```
 
 #### Pathway analysis
 
-``` r
+```{r, eval=FALSE}
 # helper function
 endo.expressed <- getExpressedGenesFromSeuratObject(endo, 
                                                     unique(endo@active.ident), 
@@ -724,7 +716,7 @@ endoAvgExpression <- AverageExpression(object = endo,
 
 ##### Figure S2A
 
-``` r
+```{r, eval=FALSE}
 FigureS2A <- DoHeatmap(endoAvgExpression, 
                        features = endoGO.genes2, 
                        disp.min = -2,
@@ -741,10 +733,9 @@ FigureS2A <- DoHeatmap(endoAvgExpression,
 ```
 
 ### Epithelial subset
-
 #### Cell classification
 
-``` r
+```{r, eval=FALSE}
 Idents(epi) <- "integrated_snn_res.1"
 
 # find known clusters (cornified) are combined into one based on the global clustering @ resolution 1
@@ -782,7 +773,7 @@ epi$epiTypes <- Idents(epi)
 
 ##### Figure 2C
 
-``` r
+```{r, eval=FALSE}
 epi <- RunUMAP(epi, dims = 1:50)
 epiColors <- carto.pal(pal1 = "brown.pal", 
                        n1 = 20)[c(20, 15, 10, 5)]
@@ -827,7 +818,7 @@ Fig2D_cartoonProp <- ggplot(epiPropBySubset,
 
 #### Gene expression
 
-``` r
+```{r, eval=FALSE}
 # epi GEX based on new cluster names
 epiMarkers <- FindAllMarkers(epi, 
                              only.pos = TRUE, 
@@ -848,7 +839,7 @@ customEpi <- rev(c("KRT14", "KRT5", "SFN", "KRT15", "DSP",
 
 ##### Figure 2D
 
-``` r
+```{r, eval=FALSE}
 Fig2D <- DotPlot(epi,
                  features = customEpi, 
                  col.min = 0, 
@@ -865,11 +856,12 @@ Fig2D <- DotPlot(epi,
                                  order = 1), 
          size = guide_legend(title = "%cell.exp", 
                              order = 2))
+
 ```
 
 #### Pathway analysis
 
-``` r
+```{r, eval=FALSE}
 # helper function
 Idents(epi) <- "epiTypes"
 epi.expressed <- getExpressedGenesFromSeuratObject(epi, 
@@ -920,11 +912,12 @@ epiGO.genes2 <- epiGO.genes2[!duplicated(epiGO.genes2)]
 
 # new object w/ average expression for all the genes
 epiAvgExpression <- AverageExpression(object = epi, return.seurat = TRUE)
+
 ```
 
 ##### Figure S2B
 
-``` r
+```{r, eval=FALSE}
 FigureS2B <- DoHeatmap(epiAvgExpression, 
                        features = epiGO.genes2, 
                        disp.min = -2,
@@ -941,10 +934,9 @@ FigureS2B <- DoHeatmap(epiAvgExpression,
 ```
 
 ### Fibroblast subset
-
 #### Cell classification
 
-``` r
+```{r, eval=FALSE}
 DefaultAssay(fib) <- "RNA"
 Idents(fib) <- "integrated_snn_res.1"
 
@@ -972,11 +964,12 @@ levels(fib) <- c("H.Fib 1.1",
 
 # fib metadata
 fib$fibTypes <- Idents(fib)
+
 ```
 
 ##### Figure 2E
 
-``` r
+```{r, eval=FALSE}
 fib <- RunUMAP(fib, dims = 1:50)
 fibColors <- c(paletteer_d("ggsci::green_material")[c(10, 7, 4, 2)], 
                paletteer_d("ggsci::lime_material")[c(6)])
@@ -1020,7 +1013,7 @@ Fig2F_cartoonProp <- ggplot(endoPropBySubset,
 
 #### Gene expression
 
-``` r
+```{r, eval=FALSE}
 # fib GEX based on new cluster names
 fibMarkers <- FindAllMarkers(fib, 
                              only.pos = TRUE, 
@@ -1037,7 +1030,7 @@ fibTop <- fibTop[!duplicated(fibTop$gene),] %>%
 
 ##### Figure 2F
 
-``` r
+```{r, eval=FALSE}
 Fig2F <- DotPlot(fib, 
                  features = fibTopGenes,
                  col.min = 0, 
@@ -1059,7 +1052,7 @@ Fig2F <- DotPlot(fib,
 
 #### Pathway analysis
 
-``` r
+```{r, eval=FALSE}
 # helper function
 Idents(fib) <- "fibTypes"
 fib.expressed <- getExpressedGenesFromSeuratObject(fib, 
@@ -1115,7 +1108,7 @@ fibAvgExpression <- AverageExpression(object = fib, return.seurat = TRUE)
 
 ##### Figure S2C
 
-``` r
+```{r, eval=FALSE}
 FigureS2C <- DoHeatmap(fibAvgExpression, 
                        features = fibGO.genes2, 
                        disp.min = -2,
@@ -1133,7 +1126,7 @@ FigureS2C <- DoHeatmap(fibAvgExpression,
 
 ##### Table S4
 
-``` r
+```{r, eval=FALSE}
 endoMarkers.top <- endoMarkers.gsf %>%
   group_by(cluster) %>%
   top_n(n=10, wt=avg_logFC)
@@ -1151,10 +1144,9 @@ write.csv(allMarkers.top, "TableS4.csv")
 ```
 
 ### Immune subset
-
 #### Cell classification
 
-``` r
+```{r, eval=FALSE}
 # use SingleR
 # seurat object -> SingleCellExperiment
 immuneSCE <- as.SingleCellExperiment(im)
@@ -1234,7 +1226,7 @@ im.mkr.top <- im.mkr.sub %>%
 
 ##### Figure 3A
 
-``` r
+```{r, eval=FALSE}
 Idents(im) <- "mon.fine"
 im <- RunUMAP(im, dims = 1:50)
 imColors <- c(carto.pal(pal1 = "blue.pal", n1 = 20)[c(20, 17, 14, 11, 8, 5, 2)], 
@@ -1268,7 +1260,7 @@ write.csv(Fig3AStats, "Fig3A_forStats.csv")
 
 ##### Figure 3B
 
-``` r
+```{r, eval=FALSE}
 TCgenes <- c(im.mkr.top$gene[1:5], 
              "IL17A", 
              "IL17F", 
@@ -1315,7 +1307,7 @@ Figure3B <- DotPlot(immuneT,
 
 ##### Figure 3C
 
-``` r
+```{r, eval=FALSE}
 Bgenes <- im.mkr.top$gene[c(36:50)]
 Bgenes <- Bgenes[!duplicated(Bgenes)]
 
@@ -1345,7 +1337,7 @@ Figure3C <- DotPlot(immuneB,
 
 ##### Figure 3D
 
-``` r
+```{r, eval=FALSE}
 Mgenes <- c(im.mkr.top$gene[c(51:70)])
 Mgenes <- Mgenes[!duplicated(Mgenes)]
 immuneM <- subset(im, 
@@ -1376,8 +1368,7 @@ Figure3D <- DotPlot(immuneM,
 ```
 
 ##### Table S5
-
-``` r
+```{r, eval = FALSE}
 Idents(im) <- "mon.fine"
 im <- RenameIdents(im, 
                    "abT (CD4)" = "T/NK", 
@@ -1411,8 +1402,7 @@ write.csv(TBMyeloid.top, "TableS5.csv")
 ```
 
 ### Microbe Recognition/Entry
-
-``` r
+```{r, eval=FALSE}
 tlrs <- c("TLR1", 
           "TLR2", 
           "TLR3", 
@@ -1737,8 +1727,7 @@ imDot_results[is.na(imDot_results)] = 0
 ```
 
 ##### Figure 7B
-
-``` r
+```{r, eval=FALSE}
 Fig7B_endoGvB <- ggplot(endoDot_results,
                         aes(fill=id,
                             y = pct.exp, 
@@ -1778,20 +1767,18 @@ Fig7B_immuneGvB <- ggplot(imDot_results,
 ```
 
 ##### Figure S7A
-
-``` r
+```{r, eval=FALSE}
 FigS7B <- generalViR_Dot_GvB
 ```
 
-## Oral, Skin, Lung, Ileum
+## Oral, Skin, Lung, Ileum {.tabset .tabset-pills}
 
-> This section covers **Figure 1E, Figure S3B**
+>This section covers **Figure 1E, Figure S3B**
 
 ### Dataset preparation
-
 #### Transformation
 
-``` r
+```{r, eval=FALSE}
 HO <- merge(GM, y=BM)
 HS <- NormalizeData(HS)
 HS <- FindVariableFeatures(HS, nfeatures = 4000)
@@ -1803,7 +1790,7 @@ HI <- FindVariableFeatures(HI, nfeatures = 4000)
 
 #### Downsampling
 
-``` r
+```{r, eval=FALSE}
 # use fewest cells for downsampling
 ncol(HS)
 ncol(HO)
@@ -1818,15 +1805,16 @@ HI.sub <- HI[, sample(colnames(HI), size = ncol(HS), replace = F)]
 
 #### Integration and batch correction
 
-``` r
+```{r, eval=FALSE}
 sampleList <- list(HS, HO.sub, HI.sub, HL.sub)
 oral.anchors <- FindIntegrationAnchors(object.list = sampleList, dims = 1:50)
 oralIntegrated_skinLungIleum <- IntegrateData(anchorset = oral.anchors, dims = 1:50)
+
 ```
 
 #### Dimensionality reduction and cell clustering
 
-``` r
+```{r, eval=FALSE}
 # cell-cycle scoring and regression
 s.genes <- cc.genes$s.genes
 g2m.genes <- cc.genes$g2m.genes
@@ -1859,10 +1847,8 @@ clustree(oralIntegrated_skinLungIleum)
 ```
 
 ### High level summary
-
 #### Cell classification
-
-``` r
+```{r, eval=FALSE}
 Idents(oralIntegrated_skinLungIleum) <- "project"
 oralIntegrated_skinLungIleum <- RenameIdents(oralIntegrated_skinLungIleum, 
                                              "BM" = "Oral", 
@@ -1885,7 +1871,7 @@ oralIntegrated_skinLungIleum$extraCourseID <- oralIntegrated_skinLungIleum@activ
 
 ##### Figure 1E
 
-``` r
+```{r, eval=FALSE}
 genCols <- c(paletteer_d("ggsci::nrc_npg")[c(1,3,4,9)], 
              paletteer_d("ggsci::default_jco")[3])
 
@@ -1906,10 +1892,8 @@ Fig1E_prop <- plot_stat(oralIntegrated_skinLungIleum, plot_type = "prop_fill", g
 ```
 
 ### Immune Subset
-
 #### Cell classification
-
-``` r
+```{r, eval=FALSE}
 Idents(oralIntegrated_skinLungIleum) <- "extraCourseID"
 immune_OSLI <- subset(oralIntegrated_skinLungIleum, idents = "Immune")
 
@@ -1981,8 +1965,7 @@ immune_OSLI$mon.fine.adjusted <- factor(x = immune_OSLI$mon.fine.adjusted, level
 ```
 
 ##### Figure S3B
-
-``` r
+```{r, eval=FALSE}
 projectCols <- paletteer_d("nationalparkcolors::Redwoods")
 Idents(immune_OSLI) <- "project2"
 FigS3B <- plot_stat(immune_OSLI, plot_type = "prop_fill", group_by = "mon.fine.adjusted") +
@@ -2004,15 +1987,14 @@ FigS3ImStats <- FigS3ImStats[order(FigS3ImStats$cluster),]
 write.csv(FigS3ImStats, "FigS3B_forStats.csv")
 ```
 
-## Oral vs. Salivary
+## Oral vs. Salivary {.tabset .tabset-pills}
 
-> This section covers **Figure S3C**
+>This section covers **Figure S3C**
 
 ### Dataset preparation
-
 #### Transformation
 
-``` r
+```{r, eval=FALSE}
 SG <- NormalizeData(SG)
 SG <- FindVariableFeatures(SG, nfeatures = 4000)
 SG$project <- "SG" 
@@ -2020,7 +2002,7 @@ SG$project <- "SG"
 
 #### Downsampling
 
-``` r
+```{r, eval=FALSE}
 # use fewest cells for downsampling
 ncol(SG)
 ncol(GM)
@@ -2033,7 +2015,7 @@ BM.sub <- BM[, sample(colnames(BM), size = ncol(SG), replace = F)]
 
 #### Integration and batch correction
 
-``` r
+```{r, eval=FALSE}
 sampleList <- list(GM.sub, BM.sub, SG)
 oral.anchors <- FindIntegrationAnchors(object.list = sampleList, dims = 1:50)
 oralIntegrated <- IntegrateData(anchorset = oral.anchors, dims = 1:50)
@@ -2041,7 +2023,7 @@ oralIntegrated <- IntegrateData(anchorset = oral.anchors, dims = 1:50)
 
 #### Dimensionality reduction and cell clustering
 
-``` r
+```{r, eval=FALSE}
 # standard workflow for clustering
 oralIntegrated_SG <- ScaleData(oralIntegrated_SG, 
                                verbose = TRUE)
@@ -2063,10 +2045,9 @@ Idents(oralIntegrated_SG) <- "integrated_snn_res.1"
 ```
 
 ### High level summary
-
 #### Cell classification
 
-``` r
+```{r, eval=FALSE}
 # find cluster defining markers
 all.markers.1 <- FindAllMarkers(oralIntegrated_SG, 
                                 only.pos = TRUE, 
@@ -2112,11 +2093,10 @@ top.markers.1 <- significant.markers.1 %>%
   top_n(n=20, wt=avg_logFC)
 ```
 
+
 ### Immune Subset
-
 #### Cell classification
-
-``` r
+```{r, eval=FALSE}
 # subset immune clusters
 immune <- subset(oralIntegrated_SG, idents = c("4", "7", "8", "9", "19", "21", "26"))
 
@@ -2201,7 +2181,7 @@ immune$project <- immune@active.ident
 
 ##### Figure S3C
 
-``` r
+```{r, eval=FALSE}
 Idents(oralIntegrated_SG) <- "integrated_snn_res.1"
 FigS3C_dimPlot <- DimPlot(object = oralIntegrated_SG, 
                           label = TRUE, 
@@ -2220,25 +2200,24 @@ FigS3C_immuneProp <- plot_stat(immune, plot_type = "prop_fill", group_by = "mon.
   theme(axis.title.x = element_blank(), 
         axis.title.y = element_blank(), 
         axis.text = element_text(size = 12))
+
 ```
 
-## Health vs. Perio
+## Health vs. Perio {.tabset .tabset-pills}
 
-> This section covers **Figure 4E, Figure 5A-D, Figure 6, Figure 7,
-> Figure S5, Figure S6, Figure S7, Table S6, Table S7**
+>This section covers **Figure 4E, Figure 5A-D, Figure 6, Figure 7, Figure S5, Figure S6, Figure S7, Table S6, Table S7**
 
 ### Data preparation
-
 #### Transformation
 
-``` r
+```{r, eval=FALSE}
 PD <- NormalizeData(BM)
 PD <- FindVariableFeatures(BM, nfeatures = 4000)
 ```
 
 #### Integration and batch correction
 
-``` r
+```{r, eval=FALSE}
 sampleList <- list(GM, PD)
 oral.anchors <- FindIntegrationAnchors(object.list = sampleList, dims = 1:50)
 oralIntegrated_HvP <- IntegrateData(anchorset = oral.anchors, dims = 1:50)
@@ -2246,7 +2225,7 @@ oralIntegrated_HvP <- IntegrateData(anchorset = oral.anchors, dims = 1:50)
 
 #### Dimensionality reduction and cell clustering
 
-``` r
+```{r, eval=FALSE}
 # cell-cycle scoring and regression
 s.genes <- cc.genes$s.genes
 g2m.genes <- cc.genes$g2m.genes
@@ -2278,11 +2257,10 @@ oralIntegrated_HvP <- RunUMAP(oralIntegrated_HvP,
                               dims = 1:50)
 ```
 
-### High-level summary
-
+### High-level summary 
 #### Cell classification
 
-``` r
+```{r, eval=FALSE}
 # set correct assay and idents for GEX
 DefaultAssay(oralIntegrated_HvP) <- "RNA"
 Idents(oralIntegrated_HvP) <- "integrated_snn_res.1"
@@ -2358,7 +2336,7 @@ oralIntegrated_HvP$fineCellType <- oralIntegrated_HvP@active.ident
 
 ##### Figure 4E
 
-``` r
+```{r, eval=FALSE}
 genColors <- paletteer_d("ggsci::nrc_npg")[c(1,3,4,9,5)]
 Idents(oralIntegrated_HvP) <- "celltype"
 Fig4E_dimPlot <- DimPlot(object = oralIntegrated_HvP, 
@@ -2388,10 +2366,9 @@ write.csv(Fig4eStats, "Fig4e_forStatistics.csv")
 ```
 
 ### Immune subset
-
 #### Cell classification
 
-``` r
+```{r, eval=FALSE}
 # use SingleR
 # seurat object -> SingleCellExperiment
 immune_HvP <- subset(oralIntegrated_HvP, 
@@ -2520,7 +2497,7 @@ immune_HvP$monCourse_project <- paste(immune_HvP$courseImmune,
 
 ##### Figure 5A,B
 
-``` r
+```{r, eval=FALSE}
 Idents(immune_HvP) <- "mon.fine.adjusted"
 Fig5A_dimPlot <- DimPlot(immune_HvP, 
                          label = FALSE, 
@@ -2547,7 +2524,7 @@ write.csv(Fig5AStats, "Fig5A_forStats.csv")
 
 ##### Figure 5C
 
-``` r
+```{r, eval=FALSE}
 Idents(immune_HvP) <- "mon.fine.adjusted"
 immune_HvP_Plasma <- subset(immune_HvP, 
                             idents = "Plasma")
@@ -2591,8 +2568,7 @@ Fig5C <- (plasma1|plasma2|plasma3|plasma4)
 ```
 
 ##### Figure 5D
-
-``` r
+```{r, eval = FALSE}
 Idents(immune_HvP) <- "mon.fine.adjusted"
 immune_HvP_Neut <- subset(immune_HvP, 
                           idents = "Neutrophil")
@@ -2632,11 +2608,11 @@ neut4 <- plot_hexbin_gene(immune_HvP_Neut,
 Fig5D <- (neut1|neut2|neut3|neut4)
 ```
 
-### Endothelial subset
 
+### Endothelial subset
 #### Cell classification
 
-``` r
+```{r, eval=FALSE}
 Idents(oralIntegrated_HvP) <- "fineCellType"
 # subset endo
 endo_HvP <- subset(oralIntegrated_HvP, 
@@ -2664,7 +2640,7 @@ endo_HvPColors <- c(carto.pal(pal1 = "red.pal", n1 = 20)[c(20,8,2,14)],
 
 ##### Figure 6A
 
-``` r
+```{r, eval=FALSE}
 Idents(endo_HvP) <- "endoTypes"
 Fig6A_dimPlot <- DimPlot(object = endo_HvP, 
                  label = FALSE, 
@@ -2695,7 +2671,7 @@ write.csv(Fig6AStats, "Fig6A_forStats.csv")
 
 #### Gene expression
 
-``` r
+```{r, eval=FALSE}
 endo_HvPMarkers <- FindAllMarkers(endo_HvP, 
                                   only.pos = TRUE, 
                                   min.pct = 0.25, 
@@ -2711,7 +2687,7 @@ endo_HvPTop <- endo_HvPTop[!duplicated(endo_HvPTop$gene),] %>%
 
 ##### Figure S5A,B
 
-``` r
+```{r, eval=FALSE}
 Idents(endo_HvP) <- "endoTypes"
 FigureS5A <- DimPlot(object = endo_HvP, label = FALSE, reduction = "umap", cols = endo_HvPColors, split.by = "project") + 
   theme_cowplot() +
@@ -2737,7 +2713,7 @@ FigureS5B <- DotPlot(endo_HvP,
 
 #### Pathway analysis
 
-``` r
+```{r, eval=FALSE}
 Idents(endo_HvP) <- "project"
 # pathway analysis
 endo_HvP.expressed <- getExpressedGenesFromSeuratObject(endo_HvP, 
@@ -2784,7 +2760,7 @@ endo_HvPGO.filtered.PD <- endo_HvPGO.filtered.PD[endo_HvPGO.filtered.PD$descript
 
 ##### Figure 6D, Table S6
 
-``` r
+```{r, eval=FALSE}
 Fig6D <- ggplot(endo_HvPGO.filtered.PD, 
                 aes(x=-log(p.adj), 
                     y=description)) + 
@@ -2798,10 +2774,9 @@ write.csv(endo_HvPGO.filtered.PD, "TableS6_endo.csv")
 ```
 
 ### Epithelial subset
-
 #### Cell classification
 
-``` r
+```{r, eval=FALSE}
 Idents(oralIntegrated_HvP) <- "fineCellType"
 # subset epi
 epi_HvP <- subset(oralIntegrated_HvP, 
@@ -2825,7 +2800,7 @@ epi_HvPColors <- carto.pal(pal1 = "brown.pal", n1 = 20)[c(20, 15, 10, 5)]
 
 ##### Figure 6B
 
-``` r
+```{r, eval=FALSE}
 Idents(epi_HvP) <- "epiTypes"
 Fig6B_dimPlot <- DimPlot(object = epi_HvP, 
                          label = FALSE, 
@@ -2856,7 +2831,7 @@ write.csv(Fig6BStats, "Fig6B_forStats.csv")
 
 #### Gene expression
 
-``` r
+```{r, eval=FALSE}
 epi_HvPMarkers <- FindAllMarkers(epi_HvP, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.75)
 epi_HvPSig <- epi_HvPMarkers[epi_HvPMarkers$p_val_adj < 0.2, ]
 write.csv(epi_HvPSig, "epi_HvP_clusterMarkers_significant_R_1.csv")
@@ -2869,7 +2844,7 @@ epi_HvPTop <- rev(epi_HvPTop$gene)
 
 ##### Figure S6C,D
 
-``` r
+```{r, eval=FALSE}
 Idents(epi_HvP) <- "epiTypes"
 
 FigS6C <- DimPlot(object = epi_HvP, 
@@ -2898,7 +2873,7 @@ FigS6D <- DotPlot(epi_HvP,
 
 #### Pathway analysis
 
-``` r
+```{r, eval=FALSE}
 Idents(epi_HvP) <- "project"
 
 epi_HvP.expressed <- getExpressedGenesFromSeuratObject(epi_HvP, 
@@ -2946,7 +2921,7 @@ epi_HvPGO.filtered.PD <- epi_HvPGO.filtered.PD[epi_HvPGO.filtered.PD$description
 
 ##### Figure 6E, Table S6
 
-``` r
+```{r, eval=FALSE}
 Fig6E <- ggplot(epi_HvPGO.filtered.PD, 
                 aes(x=-log(p.adj), 
                     y=description)) + 
@@ -2960,10 +2935,9 @@ write.csv(epi_HvPGO.filtered.PD, "TableS6_epi.csv")
 ```
 
 ### Fibroblast subset
-
 #### Cell classification
 
-``` r
+```{r, eval=FALSE}
 # subset fib
 # fib 1.5 was contaminated with epi cells and was not included
 fib_HvP <- subset(oralIntegrated_HvP, idents = c("P.Fib 1.1", 
@@ -2982,11 +2956,12 @@ fib_HvP$fibTypes <- fib_HvP@active.ident
 fib_HvP <- RunUMAP(fib_HvP, dims = 1:50)
 fib_HvPColors <- c(paletteer_d("ggsci::green_material")[c(10, 7, 4)], 
                    paletteer_d("ggsci::lime_material")[c(4,8)])
+
 ```
 
 ##### Figure 6C
 
-``` r
+```{r, eval=FALSE}
 Idents(fib_HvP) <- "fibTypes"
 Fig6C_dimPlot <- DimPlot(object = fib_HvP, 
                          label = FALSE, 
@@ -3017,7 +2992,7 @@ write.csv(Fig6CStats, "Fig6C_forStats.csv")
 
 #### Gene expression
 
-``` r
+```{r, eval=FALSE}
 fib_HvPMarkers <- FindAllMarkers(fib_HvP, 
                                  only.pos = TRUE, 
                                  min.pct = 0.5, 
@@ -3032,7 +3007,7 @@ fib_HvPTop <- fib_HvPTop[!duplicated(fib_HvPTop$gene),] %>%
 
 ##### Figure S6E,F
 
-``` r
+```{r, eval=FALSE}
 Idents(fib_HvP) <- "fibTypes"
 FigS6E <- DimPlot(object = fib_HvP, 
                   label = FALSE, 
@@ -3061,7 +3036,7 @@ FigS6F <- DotPlot(fib_HvP,
 
 #### Pathway analysis
 
-``` r
+```{r, eval=FALSE}
 Idents(fib_HvP) <- "project"
 
 fib_HvP.expressed <- getExpressedGenesFromSeuratObject(fib_HvP, 
@@ -3110,7 +3085,7 @@ fib_HvPGO.filtered.PD <- fib_HvPGO.filtered.PD[fib_HvPGO.filtered.PD$description
 
 ##### Figure 6F, Table S6
 
-``` r
+```{r, eval=FALSE}
 Fig6F <- ggplot(fib_HvPGO.filtered.PD, 
                 aes(x=-log(p.adj), 
                     y=description)) + 
@@ -3124,8 +3099,7 @@ write.csv(fib_HvPGO.filtered.PD, "TableS6_fib.csv")
 ```
 
 ### Receptor-Ligand Interactions
-
-``` r
+```{r, eval=FALSE}
 oralIntegrated_HvP_withoutOther <- oralIntegrated_HvP
 Idents(oralIntegrated_HvP) <- "celltype"
 oralIntegrated_HvP_withoutOther <- subset(oralIntegrated_HvP, idents = "Other", invert = TRUE)
@@ -3176,16 +3150,14 @@ receptors <- DotPlot(immune_HvP,
 ```
 
 ##### Figure S6G-I
-
-``` r
+```{r, eval=FALSE}
 FigS6G <- ligands
 FigS6H <- receptors
 FigS6I <- nichenet_output_all$ligand_receptor_heatmap
 ```
 
 ##### Figure 6E
-
-``` r
+```{r, eval=FALSE}
 # Alluvial plot with truncated list to include only relevant ones
 colsAlluvial <- paletteer_d("ggsci::nrc_npg")[c(4,1,3,9)]
 # user generated based on L/R prior interaction potential (FigS6I)
@@ -3211,8 +3183,7 @@ Fig6E <- alluvial_wide(data = LR.alluvial.truncated,
 ```
 
 ### Cyto-/Chemokine Interactions
-
-``` r
+```{r, eval=FALSE}
 # gene lists
 chemoList <- c("CCL4", 
                "CCL8", 
@@ -3343,8 +3314,7 @@ levels(oralIntegrated_sub3) <- rev(c("Endothelial_PD",
 ```
 
 ##### Figure S6J
-
-``` r
+```{r, eval=FALSE}
 FigS6J_1 <- DotPlot(immune_HvP, features = rev(chemoRList), col.min = 0,
                       scale.by = "size", 
                      cols = c("white", "black"), 
@@ -3371,8 +3341,7 @@ FigS6J_2 <- DotPlot(oralIntegrated_HvP,
 ```
 
 ##### Figure 6F
-
-``` r
+```{r, eval=FALSE}
 Fig6F <- DotPlot(oralIntegrated_sub3, features = chemoList, col.min = 0,
                     scale.by = "size", cols = c("white", "black"), dot.min = 0.01, dot.scale = 10) + 
   scale_x_discrete(position = "top") +
@@ -3383,8 +3352,7 @@ Fig6F <- DotPlot(oralIntegrated_sub3, features = chemoList, col.min = 0,
 ```
 
 ### Monogenic/GWAS
-
-``` r
+```{r, eval=FALSE}
 perioMonogenic <- c("C1R", 
                     "C1S", 
                     "HAX1", 
@@ -3422,11 +3390,11 @@ levels(oralIntegrated_subIm) <- rev(c("Endothelial_GM", "Endothelial_PD",
                                       "Monocyte_GM", "Monocyte_PD", 
                                       "mDC_GM", "mDC_PD", 
                                       "Mast_GM", "Mast_PD"))
+
 ```
 
 ##### Figure 7A
-
-``` r
+```{r, eval=FALSE}
 Fig7A <- DotPlot(oralIntegrated_subIm, 
                  features = c(perioMonogenic, 
                               perioGWAS), 
@@ -3442,10 +3410,8 @@ Fig7A <- DotPlot(oralIntegrated_subIm,
         axis.text.x = element_text(angle = 90, vjust = 0.5, size = 11)
   )
 ```
-
 ### Microbe Recognition/Entry
-
-``` r
+```{r, eval=FALSE}
 tlrs <- c("TLR1", 
           "TLR2", 
           "TLR3", 
@@ -3776,8 +3742,7 @@ immuneDot_results[is.na(immuneDot_results)] = 0
 ```
 
 ##### Figure 7B
-
-``` r
+```{r, eval=FALSE}
 Fig7B_endoHvP <- ggplot(endoDot_results, 
                           aes(fill=id, 
                               y = pct.exp, 
@@ -3814,17 +3779,16 @@ Fig7B_immuneHvP <- ggplot(immuneDot_results,
   theme_cowplot() +
   theme(axis.text.x = element_text(angle = 90, 
                                    vjust = 0.5))
+
 ```
 
 ##### Figure S7B
-
-``` r
+```{r, eval=FALSE}
 FigS7B <- generalViR_Dot_HvP
 ```
 
 ## SessionInfo
-
-``` r
+```{r, eval=FALSE}
 sessionInfo()
 
 R version 3.6.3 (2020-02-29)
