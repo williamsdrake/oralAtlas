@@ -5,7 +5,8 @@ Oral Atlas
 
 The following document includes the code used to analyze datasets and
 generate figures related to single-cell RNA sequencing from Williams et
-al., 2021 (doi: [doi number here](actual.address.here.org))
+al., 2021 (doi:
+[10.1016/j.cell.2021.05.013](https://doi.org/10.1016/j.cell.2021.05.013))
 
 ## Setup
 
